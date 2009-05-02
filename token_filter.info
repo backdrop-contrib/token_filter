@@ -2,4 +2,5 @@
 name = Token Filter
 description = Allows token values to be used as filters
 package = Other
-requires = token
+dependencies[] = token
+core = 6.x
