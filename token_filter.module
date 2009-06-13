@@ -61,6 +61,6 @@ function token_filter_replacetoken($matches) {
   // if not, a token like 'custom_text' won't be properly replaced if another token like 'custom' exists  
   $token = '['.$token.']';
     
-  $output = token_replace($token, $type, $object = NULL, $leading = '[', $trailing = ']');  
+  $output = token_replace($token, $type, $object, $leading = '[', $trailing = ']');  
   return $output;
 }
