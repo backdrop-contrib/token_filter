@@ -30,7 +30,7 @@ function token_filter_filter($op, $delta = 0, $format = -1, $text = '' ) {
       if (strpos($text, "[token") === FALSE) {
         return $text;
       }
-      else {
+      else {        
         $output .= preg_replace_callback("|\[token ([^ ]*) ([^]]*)\]|i", 'token_filter_replacetoken', $text);
         return $output;
       }
@@ -55,7 +55,12 @@ function token_filter_replacetoken($matches) {
     default:
       $object = NULL;
       break;
-    } 
-  $output = token_replace($token, $type, $object = NULL, $leading = '', $trailing = '');
+  } 
+  
+  // add [ ] to the token so str_replace correctly replaces token values
+  // if not, a token like 'custom_text' won't be properly replaced if another token like 'custom' exists  
+  $token = '['.$token.']';
+    
+  $output = token_replace($token, $type, $object = NULL, $leading = '[', $trailing = ']');  
   return $output;
 }
