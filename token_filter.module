@@ -46,7 +46,7 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
           }
         }
         break;
-      case '_drupal_bootstrap_full':
+      case '_backdrop_bootstrap_full':
       case 'menu_execute_active_handler':
         break 2;
     }
