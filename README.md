@@ -29,7 +29,7 @@ Credits
 -------
 
 - Ported to Backdrop CMS by Jerry Hudgins (https://github.com/jerry-hudgins/).
-- Originally written for Drupal by Peter Vanhee (https://github.com/pvhee/).
+- Originally written for Drupal by Anton de Wet (https://github.com/asciikewl/).
 
 License
 -------
