@@ -102,12 +102,14 @@ function _token_filter_get_entity_mapping($value_type = 'token', $value = NULL, 
  * Filter tip callback for the token input filter.
  */
 function _token_filter_filter_tips($filter, $format, $long = FALSE) {
+  // TODO: pass the 'token_types' argument to theme_token_tree* to include
+  // additional tokens when they are officially supported.
   if ($long) {
     $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title]). The following is a list of the tokens that are available:');
     $output .= theme('token_tree', array('click_insert' => FALSE));
     return $output;
   }
   else {
-    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title]).');
+    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title]).') . ' ' . theme('token_tree_link', array('click_insert' => FALSE)) . '.';
   }
 }
