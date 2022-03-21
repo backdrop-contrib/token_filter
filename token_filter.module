@@ -78,7 +78,7 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
  * This function is the replacement for token_get_entity_mapping() in D7.
  */
 function _token_filter_get_entity_mapping($value_type = 'token', $value = NULL, $fallback = FALSE) {
-  $mapping = &drupal_static(__FUNCTION__, array());
+  $mapping = &backdrop_static(__FUNCTION__, array());
 
   if (empty($mapping)) {
     foreach (entity_get_info() as $entity_type => $info) {
