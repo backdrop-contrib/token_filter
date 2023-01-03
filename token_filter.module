@@ -1,5 +1,4 @@
 <?php
-
 /**
  * @file
  * Additional text filter for token input.
@@ -11,8 +10,9 @@
 function token_filter_filter_info() {
   $filters['filter_tokens'] = array(
     'title' => t('Replace tokens'),
-    'description' => t('The usage of this filter should be restricted to trusted users only as tokens with sensitive data could be exposed.'),
+    'description' => t('The usage of this filter might need to be restricted to trusted users only as tokens with sensitive data could be exposed. You can also limit the tokens allowed by this filter in its configuration.'),
     'process callback' => '_token_filter_filter_tokens',
+    'settings callback' => '_token_filter_settings',
     'tips callback' => '_token_filter_filter_tips',
     'cache' => FALSE,
   );
@@ -64,9 +64,84 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
     $data['user'] = $user;
   }
 
-  return token_replace($text, $data, $options);
+  // The rest of this function comes from token_replace(), but we insert our own
+  // additional filtering of the tokens to be replaced.
+  $text_tokens = token_scan($text);
+  if (empty($text_tokens)) {
+    return $text;
+  }
+
+  $allow = $filter->settings['allow'];
+
+  // Convert the token list to a regular expression.
+  $to_replace = array(
+    '/(\r\n?|\n)/', // newlines
+    '/\\\\\*/', // asterisks
+  );
+  $replacements = array(
+    '|', // logical OR
+    '[a-zA-Z0-9_\-\:]*', // alphanumeric, hyphen, underscore, or colon
+  );
+  $tokens_quoted = preg_quote($filter->settings['tokens']);
+  $regexps = '/^' . preg_replace($to_replace, $replacements, $tokens_quoted) . '$/';
+
+  // Compare each found token against our list to find matches. If there's a
+  // match, see whether we allow the token and if not, remove it from the list.
+  foreach ($text_tokens as $type => $value) {
+    foreach ($value as $part => $token) {
+      $matched = (bool) preg_match($regexps, $token);
+      if (($matched && !$allow) || (!$matched && $allow)) {
+        unset($text_tokens[$type][$part]);
+        if (empty($text_tokens[$type])) {
+          unset($text_tokens[$type]);
+        }
+      }
+    }
+  }
+
+  // Continue with the default behavior and code of token_replace().
+  $replacements = array();
+  foreach ($text_tokens as $type => $tokens) {
+    $replacements += token_generate($type, $tokens, $data, $options);
+    if (!empty($options['clear'])) {
+      $replacements += array_fill_keys($tokens, '');
+    }
+  }
+
+  // Optionally alter the list of replacement values.
+  if (!empty($options['callback'])) {
+    $function = $options['callback'];
+    $function($replacements, $data, $options);
+  }
+
+  $tokens = array_keys($replacements);
+  $values = array_values($replacements);
+
+  return str_replace($tokens, $values, $text);
 }
 
+/**
+ * Implements callback_filter_settings().
+ *
+ * Filter settings callback for the token text filter.
+ */
+function _token_filter_settings($form, &$form_state, $filter, $format) {
+  $settings['allow'] = array(
+    '#type' => 'radios',
+    '#options' => array(
+      0 => t('Forbid these tokens'),
+      1 => t('Allow only these tokens'),
+    ),
+    '#default_value' => $filter->settings['allow'],
+  );
+  $settings['tokens'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Tokens'),
+    '#default_value' => $filter->settings['tokens'],
+    '#description' => t('Enter tokens to forbid or allow, one per line. You can use "*" as a wildcard. Select "Forbid" above and leave this blank to allow all tokens. Forbidden tokens will be left unevaluated in the text.'),
+  );
+  return $settings;
+}
 
 /**
  * Return an array of entity type to token type mappings.
@@ -97,19 +172,31 @@ function _token_filter_get_entity_mapping($value_type = 'token', $value = NULL, 
   }
 }
 
-
 /**
  * Filter tip callback for the token input filter.
  */
 function _token_filter_filter_tips($filter, $format, $long = FALSE) {
   // TODO: pass the 'token_types' argument to theme_token_tree* to include
   // additional tokens when they are officially supported.
+
+  $allow = $filter->settings['allow'];
+  $tokens = $filter->settings['tokens'];
+  $token_list = implode(', ', array_map('trim', explode("\n", $tokens)));
+  $qualifier = '';
+  $text = t('Browse available tokens');
+  if (!empty($token_list)) {
+    if ($allow) {
+      $qualifier = t(', but only tokens of these forms are allowed: ' . check_plain($token_list));
+    }
+    else {
+      $qualifier = t(', but tokens of these forms are not allowed: ' . check_plain($token_list));
+    }
+    $text = t('Browse tokens (not all of these may be available).');
+  }
   if ($long) {
-    $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title]). The following is a list of the tokens that are available:');
-    $output .= theme('token_tree', array('click_insert' => FALSE));
-    return $output;
+    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier. The following is a list of tokens:', array('!qualifier' => $qualifier)) . theme('token_tree', array('click_insert' => FALSE, 'text' => $text));
   }
   else {
-    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title]).') . ' ' . theme('token_tree_link', array('click_insert' => FALSE)) . '.';
+    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier.', array('!qualifier' => $qualifier)) . ' ' . theme('token_tree_link', array('click_insert' => FALSE, 'text' => $text));
   }
 }
