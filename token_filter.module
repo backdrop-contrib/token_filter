@@ -88,10 +88,10 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
   // Compare each found token against our list to find matches. If there's a
   // match, see whether we allow the token and if not, remove it from the list.
   foreach ($text_tokens as $type => $value) {
-    foreach ($value as $part => $token) {
+    foreach ($value as $name => $token) {
       $matched = (bool) preg_match($regexps, $token);
       if (($matched && !$allow) || (!$matched && $allow)) {
-        unset($text_tokens[$type][$part]);
+        unset($text_tokens[$type][$name]);
         if (empty($text_tokens[$type])) {
           unset($text_tokens[$type]);
         }
