@@ -132,12 +132,13 @@ function _token_filter_settings($form, &$form_state, $filter, $format) {
       0 => t('Forbid these tokens'),
       1 => t('Allow only these tokens'),
     ),
-    '#default_value' => $filter->settings['allow'],
+    '#default_value' => isset($filter->settings['allow']) ? $filter->settings['allow'] : 0,
+    '#required' => TRUE,
   );
   $settings['tokens'] = array(
     '#type' => 'textarea',
     '#title' => t('Tokens'),
-    '#default_value' => $filter->settings['tokens'],
+    '#default_value' => isset($filter->settings['tokens']) ? $filter->settings['tokens'] : '',
     '#description' => t('Enter tokens to forbid or allow, one per line. You can use "*" as a wildcard. Select "Forbid" above and leave this blank to allow all tokens. Forbidden tokens will be left unevaluated in the text.'),
   );
   return $settings;
@@ -176,14 +177,11 @@ function _token_filter_get_entity_mapping($value_type = 'token', $value = NULL, 
  * Filter tip callback for the token input filter.
  */
 function _token_filter_filter_tips($filter, $format, $long = FALSE) {
-  // TODO: pass the 'token_types' argument to theme_token_tree* to include
-  // additional tokens when they are officially supported.
-
   $allow = $filter->settings['allow'];
   $tokens = $filter->settings['tokens'];
   $token_list = implode(', ', array_map('trim', explode("\n", $tokens)));
   $qualifier = '';
-  $text = t('Browse available tokens');
+  $text = t('Browse tokens.');
   if (!empty($token_list)) {
     if ($allow) {
       $qualifier = t(', but only tokens of these forms are allowed: ' . check_plain($token_list));
@@ -194,9 +192,21 @@ function _token_filter_filter_tips($filter, $format, $long = FALSE) {
     $text = t('Browse tokens (not all of these may be available).');
   }
   if ($long) {
-    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier. The following is a list of tokens:', array('!qualifier' => $qualifier)) . theme('token_tree', array('click_insert' => FALSE, 'text' => $text));
+    $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier. The following is a list of tokens:', array('!qualifier' => $qualifier));
+    $output .= theme('token_tree', array(
+      'click_insert' => FALSE,
+      'text' => $text,
+      'token_types' => array('user'),
+    ));
+    return $output;
   }
   else {
-    return t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier.', array('!qualifier' => $qualifier)) . ' ' . theme('token_tree_link', array('click_insert' => FALSE, 'text' => $text));
+    $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier.', array('!qualifier' => $qualifier)) . ' ';
+    $output .= theme('token_tree_link', array(
+      'click_insert' => FALSE,
+      'text' => $text,
+      'token_types' => array('user'),
+    ));
+    return $output;
   }
 }
