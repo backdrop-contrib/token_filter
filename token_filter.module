@@ -10,7 +10,7 @@
 function token_filter_filter_info() {
   $filters['filter_tokens'] = array(
     'title' => t('Replace tokens'),
-    'description' => t('The usage of this filter might need to be restricted to trusted users only as tokens with sensitive data could be exposed. You can also limit the tokens allowed by this filter in its configuration.'),
+    'description' => t('The usage of this filter might need to be restricted to trusted users only, as tokens with sensitive data could be exposed. You can also limit the tokens evaluated by this filter in its configuration.'),
     'process callback' => '_token_filter_filter_tokens',
     'settings callback' => '_token_filter_settings',
     'tips callback' => '_token_filter_filter_tips',
@@ -71,7 +71,7 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
     return $text;
   }
 
-  $allow = $filter->settings['allow'];
+  $evaluate = $filter->settings['evaluate'];
 
   // Convert the token list to a regular expression.
   $to_replace = array(
@@ -86,11 +86,11 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
   $regexps = '/^' . preg_replace($to_replace, $replacements, $tokens_quoted) . '$/';
 
   // Compare each found token against our list to find matches. If there's a
-  // match, see whether we allow the token and if not, remove it from the list.
+  // match, see whether we evaluate the token and if not, remove it from the list.
   foreach ($text_tokens as $type => $value) {
     foreach ($value as $name => $token) {
       $matched = (bool) preg_match($regexps, $token);
-      if (($matched && !$allow) || (!$matched && $allow)) {
+      if (($matched && !$evaluate) || (!$matched && $evaluate)) {
         unset($text_tokens[$type][$name]);
         if (empty($text_tokens[$type])) {
           unset($text_tokens[$type]);
@@ -126,20 +126,20 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
  * Filter settings callback for the token text filter.
  */
 function _token_filter_settings($form, &$form_state, $filter, $format) {
-  $settings['allow'] = array(
+  $settings['evaluate'] = array(
     '#type' => 'radios',
     '#options' => array(
-      0 => t('Forbid these tokens'),
-      1 => t('Allow only these tokens'),
+      0 => t('Ignore these tokens'),
+      1 => t('Evaluate only these tokens'),
     ),
-    '#default_value' => isset($filter->settings['allow']) ? $filter->settings['allow'] : 0,
+    '#default_value' => isset($filter->settings['evaluate']) ? $filter->settings['evaluate'] : 0,
     '#required' => TRUE,
   );
   $settings['tokens'] = array(
     '#type' => 'textarea',
     '#title' => t('Tokens'),
     '#default_value' => isset($filter->settings['tokens']) ? $filter->settings['tokens'] : '',
-    '#description' => t('Enter tokens to forbid or allow, one per line, including the brackets. You can use "*" as a wildcard, for example, [user:*]. Select "Forbid" above and leave this blank to allow all tokens. Forbidden tokens will be left unevaluated in the text.'),
+    '#description' => t('Enter tokens to ignore or evaluate, one per line, including the brackets. You can use "*" as a wildcard, for example, [user:*]. Select "Ignore" above and leave this blank to evaluate all tokens. Ignored tokens will be left unevaluated in the text.'),
   );
   return $settings;
 }
@@ -178,7 +178,7 @@ function _token_filter_filter_admin_form_submit_post($form, &$form_state) {
 
   // Grounds for a warning.
   if (($is_new && $new_status == 1) || ($old_status != $new_status) || ($new_status == 1 && $old_settings !== $new_settings)) {
-    backdrop_set_message(t('If you have existing content that contains tokens affected by the "Replace tokens" filter, you should clear all caches that might contain text with those tokens.'), 'warning');
+    backdrop_set_message(t('If you have existing content that may contain tokens affected by the changes to the "Replace tokens" filter, you should clear all caches that might contain text with those tokens.'), 'warning');
   }
 }
 
@@ -215,17 +215,17 @@ function _token_filter_get_entity_mapping($value_type = 'token', $value = NULL, 
  * Filter tip callback for the token input filter.
  */
 function _token_filter_filter_tips($filter, $format, $long = FALSE) {
-  $allow = isset($filter->settings['allow']) ? $filter->settings['allow'] : 0;
+  $evaluate = isset($filter->settings['evaluate']) ? $filter->settings['evaluate'] : 0;
   $tokens = isset($filter->settings['tokens']) ? $filter->settings['tokens'] : '';
   $token_list = implode(', ', array_map('trim', explode("\n", $tokens)));
   $qualifier = '';
   $text = t('Browse tokens.');
   if (!empty($token_list)) {
-    if ($allow) {
-      $qualifier = t(', but only tokens of these forms are allowed: ' . check_plain($token_list));
+    if ($evaluate) {
+      $qualifier = t(', but only tokens of these forms are evaluated: ' . check_plain($token_list));
     }
     else {
-      $qualifier = t(', but tokens of these forms are not allowed: ' . check_plain($token_list));
+      $qualifier = t(', but tokens of these forms are ignored: ' . check_plain($token_list));
     }
     $text = t('Browse tokens (not all of these may be available).');
   }

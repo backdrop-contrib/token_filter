@@ -14,7 +14,7 @@ function token_filter_update_1000() {
     $data = $config->getData();
     if (in_array('filter_tokens', array_keys($data['filters']))) {
       $data['filters']['filter_tokens']['settings'] = array(
-        'allow' => 0,
+        'evaluate' => 0,
         'tokens' => '',
       );
       $config->setData($data);
