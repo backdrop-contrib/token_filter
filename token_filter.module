@@ -230,15 +230,25 @@ function _token_filter_filter_tips($filter, $format, $long = FALSE) {
     $text = t('Browse tokens (not all of these may be available).');
   }
   if ($long) {
-    $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier. The following is a list of tokens:', array('!qualifier' => $qualifier));
-    $output .= theme('token_tree', array(
-      'click_insert' => FALSE,
-      'text' => $text,
-      'token_types' => array('user'),
-    ));
+    // The "long" description appears on the page filter/tips.
+    $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier.', array('!qualifier' => $qualifier));
+    // Only show the token tree once on a page, even if the token filter is used
+    // in multiple text formats.
+    $token_tree = &backdrop_static(__FUNCTION__);
+    if (!isset($token_tree)) {
+      $token_tree = '<br>' . t('The following is a partial list of tokens (more may be available in specific contexts).');
+      $output .= $token_tree . theme('token_tree', array(
+        'click_insert' => FALSE,
+        'text' => $text,
+        'token_types' => array('user'),
+      ));
+    }
     return $output;
   }
   else {
+    // The "short" description appears on the edit page for text formats, e.g.,
+    // admin/config/content/formats/<format>, and in the expanded description
+    // under a text field that uses that format.
     $output = t('Global tokens will be replaced with their respective token values (e.g. [site:name] or [current-page:title])!qualifier.', array('!qualifier' => $qualifier)) . ' ';
     $output .= theme('token_tree_link', array(
       'click_insert' => FALSE,
