@@ -13,6 +13,10 @@ function token_filter_filter_info() {
     'description' => t('The usage of this filter might need to be restricted to trusted users only, as tokens with sensitive data could be exposed. You can also limit the tokens replaced by this filter in its configuration.'),
     'process callback' => '_token_filter_filter_tokens',
     'settings callback' => '_token_filter_settings',
+    'default settings' => array(
+      'replace' => 0,
+      'tokens' => '',
+    ),
     'tips callback' => '_token_filter_filter_tips',
     'cache' => FALSE,
   );
