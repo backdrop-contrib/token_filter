@@ -31,34 +31,51 @@ function _token_filter_filter_tokens($text, $filter, $format, $langcode, $cache,
   $options = array('clear' => TRUE);
 
   // Attempt to figure out the current context based on the current backtrace.
-  $backtrace = debug_backtrace();
-  array_shift($backtrace); // Pop off this current function in the stack.
-  foreach ($backtrace as $caller) {
+  // First do a lightweight backtrace to see if there are any calling functions
+  // we need to worry about and how far down they are.
+  $backtrace = debug_backtrace(2);
+  $limit = 0;
+  foreach ($backtrace as $idx => $caller) {
     switch ($caller['function']) {
       case 'text_field_load':
       case 'field_default_view':
-        $entity_type = $caller['args'][0];
-        if (is_array($caller['args'][1])) {
-          // $args[1] is plural $entities for 'text_field_load'.
-          $entity = array_values($caller['args'][1])[0];
-        }
-        else {
-          // $args[1] is singular $entity for 'field_default_view'.
-          $entity = $caller['args'][1];
-        }
-        $token_type = _token_filter_get_entity_mapping('entity', $entity_type);
-        $data[$token_type] = $entity;
-        if ($langcode = $caller['args'][4]) {
-          $language_list = language_list();
-          if (!empty($language_list[$langcode])) {
-            $options['language'] = $language_list[$langcode];
-          }
-        }
+        $limit = 1 + $idx;
         break;
 
       case '_backdrop_bootstrap_full':
       case 'menu_execute_active_handler':
         break 2;
+    }
+  }
+
+  // Now do a full backtrace if needed to set context data, but only as deeply
+  // as needed.
+  if ($limit) {
+    $backtrace = debug_backtrace(1, $limit);
+    array_shift($backtrace); // Pop off this current function in the stack.
+    foreach ($backtrace as $caller) {
+      switch ($caller['function']) {
+        case 'text_field_load':
+        case 'field_default_view':
+          $entity_type = $caller['args'][0];
+          if (is_array($caller['args'][1])) {
+            // $args[1] is plural $entities for 'text_field_load'.
+            $entity = array_values($caller['args'][1])[0];
+          }
+          else {
+            // $args[1] is singular $entity for 'field_default_view'.
+            $entity = $caller['args'][1];
+          }
+          $token_type = _token_filter_get_entity_mapping('entity', $entity_type);
+          $data[$token_type] = $entity;
+          if ($langcode = $caller['args'][4]) {
+            $language_list = language_list();
+            if (!empty($language_list[$langcode])) {
+              $options['language'] = $language_list[$langcode];
+            }
+          }
+          break;
+      }
     }
   }
 
